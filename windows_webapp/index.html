@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VirtualBet AI - Desktop & WebApp</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-variant: #334155;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --profit: #10b981;
+      --loss: #ef4444;
+      --gold: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .logo { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 20px; }
+    .logo-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 20px; font-size: 12px; }
+    .status-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .status-connected { background: rgba(16, 185, 129, 0.15); color: var(--profit); border: 1px solid var(--profit); }
+    .status-disconnected { background: rgba(239, 68, 68, 0.15); color: var(--loss); border: 1px solid var(--loss); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    nav { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; gap: 8px; }
+    .nav-btn { background: none; border: none; color: var(--text-muted); padding: 12px 18px; font-size: 14px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; display: flex; align-items: center; gap: 8px; }
+    .nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    main { max-width: 1200px; width: 100%; margin: 0 auto; padding: 24px; flex: 1; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Cards & Grids */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .kpi-title { font-size: 11px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.5px; }
+    .kpi-value { font-size: 26px; font-weight: 900; margin: 4px 0; }
+    .kpi-sub { font-size: 12px; color: var(--text-muted); }
+
+    .btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--surface-variant); }
+    .btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--loss); border: 1px solid var(--loss); }
+
+    /* Model showcase */
+    .model-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 16px; }
+    .model-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; min-width: 180px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .model-card.active { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); }
+    .model-emoji { font-size: 24px; }
+    .model-name { font-weight: 800; font-size: 13px; }
+    .model-title { font-size: 11px; color: var(--text-muted); }
+
+    /* Game Forecast Cards */
+    .game-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .game-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--primary); font-weight: 700; margin-bottom: 8px; }
+    .game-teams { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+    .odds-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; text-align: center; }
+    .odds-pill { background: var(--surface-variant); padding: 4px; border-radius: 6px; }
+    
+    .consensus-banner { background: rgba(245, 158, 11, 0.12); border: 1px solid var(--gold); border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .forecast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin-top: 8px; }
+    .model-forecast-tile { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+    th { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 800; }
+    .badge-won { color: var(--profit); background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 4px; font-weight: 800; }
+    .badge-lost { color: var(--loss); background: rgba(239, 68, 68, 0.15); padding: 2px 6px; border-radius: 4px; font-weight: 800; }
+
+    .financial-box { background: rgba(0,0,0,0.25); border-radius: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <i class="fa-solid fa-futbol" style="color: var(--primary);"></i>
+      <span>VirtualBet</span>
+      <span class="logo-badge">AI DESKTOP</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div id="connStatus" class="status-pill status-connected">
+        <span class="pulse-dot"></span>
+        <span id="connText">Connected</span>
+      </div>
+      <button class="btn" onclick="advanceRound()"><i class="fa-solid fa-forward-step"></i> Next Round</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-btn active" onclick="showTab('prematch')"><i class="fa-solid fa-clock"></i> Pre-Match Board</button>
+    <button class="nav-btn" onclick="showTab('simulator')"><i class="fa-solid fa-coins"></i> Player Simulator</button>
+    <button class="nav-btn" onclick="showTab('records')"><i class="fa-solid fa-database"></i> Unified Records</button>
+    <button class="nav-btn" onclick="showTab('collector')"><i class="fa-solid fa-wifi"></i> Collector & Checkpoint</button>
+  </nav>
+
+  <main>
+    <!-- TAB 1: PRE-MATCH BOARD -->
+    <div id="prematch" class="section active">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div>
+          <h2>Upcoming Game Predictions</h2>
+          <p style="color: var(--text-muted); font-size: 13px;">Pre-kickoff odds and machine learning forecasts across all models.</p>
+        </div>
+        <button class="btn btn-outline" onclick="loadState()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      </div>
+
+      <div class="model-strip" id="modelCarousel"></div>
+      <div id="upcomingGamesList"></div>
+    </div>
+
+    <!-- TAB 2: PLAYER SIMULATOR -->
+    <div id="simulator" class="section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div>
+          <h2>Player Simulator Dashboard</h2>
+          <p style="color: var(--text-muted); font-size: 13px;">Test betting strategies with individual models or Consolidated Consensus.</p>
+        </div>
+      </div>
+
+      <!-- Financial Metrics Grid prioritizing simplicity -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-title">TOTAL AMOUNT BETTED</div>
+          <div class="kpi-value" id="simBetted">$0.00</div>
+          <div class="kpi-sub" id="simBetCount">0 bets placed</div>
+        </div>
+        <div class="kpi-card" style="border-color: rgba(16, 185, 129, 0.4);">
+          <div class="kpi-title" style="color: var(--profit);">TOTAL PROFIT (WINS)</div>
+          <div class="kpi-value" style="color: var(--profit);" id="simProfit">+$0.00</div>
+          <div class="kpi-sub" id="simWins">0 wins</div>
+        </div>
+        <div class="kpi-card" style="border-color: rgba(239, 68, 68, 0.4);">
+          <div class="kpi-title" style="color: var(--loss);">TOTAL LOSS (LOSSES)</div>
+          <div class="kpi-value" style="color: var(--loss);" id="simLoss">-$0.00</div>
+          <div class="kpi-sub" id="simLosses">0 losses</div>
+        </div>
+        <div class="kpi-card" style="border-color: var(--primary);">
+          <div class="kpi-title" style="color: var(--primary);">CURRENT BANKROLL</div>
+          <div class="kpi-value" id="simBankroll">$1,000.00</div>
+          <div class="kpi-sub" id="simNetRoi">+0.0% Net ROI</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>All Models Performance Comparison</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Betted</th>
+              <th>Won Profit</th>
+              <th>Losses</th>
+              <th>Net Outcome</th>
+              <th>Win Rate</th>
+            </tr>
+          </thead>
+          <tbody id="comparisonTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Simulated Bets Feed</h3>
+        <div id="betsFeed"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: UNIFIED RECORDS -->
+    <div id="records" class="section">
+      <div style="margin-bottom: 16px;">
+        <h2>Unified Odds & Subsequent Results</h2>
+        <p style="color: var(--text-muted); font-size: 13px;">Pre-match odds locked before the match and subsequent results linked in the exact same record.</p>
+      </div>
+      <div id="unifiedRecordsList"></div>
+    </div>
+
+    <!-- TAB 4: COLLECTOR & CHECKPOINT -->
+    <div id="collector" class="section">
+      <div class="card">
+        <h3><i class="fa-solid fa-bookmark" style="color: var(--gold);"></i> Connection Loss Auto-Checkpoint</h3>
+        <p style="color: var(--text-muted); font-size: 13px; margin: 8px 0 16px;">When connection is lost, the starting point is automatically saved to SQLite so you can resume collection smoothly.</p>
+
+        <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: 8px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Saved Start Matchday:</span>
+            <strong id="cpMatchday">24</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Saved Start Round:</span>
+            <strong id="cpRound">RND-24-001</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Checkpoint Timestamp:</span>
+            <strong id="cpTime">--</strong>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="btn" onclick="resumeStartPoint()"><i class="fa-solid fa-play"></i> Resume from Start Point</button>
+          <button class="btn btn-danger" onclick="simulateDisconnect()"><i class="fa-solid fa-wifi"></i> Test Connection Loss & Save State</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let state = {};
+    let selectedModelId = 'model_consensus';
+
+    function showTab(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    async function loadState() {
+      try {
+        const res = await fetch('/api/state');
+        state = await res.json();
+        render();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function advanceRound() {
+      await fetch('/api/advance_round', { method: 'POST' });
+      await loadState();
+    }
+
+    async function simulateDisconnect() {
+      await fetch('/api/simulate_disconnect', { method: 'POST' });
+      await loadState();
+    }
+
+    async function resumeStartPoint() {
+      await fetch('/api/resume_start_point', { method: 'POST' });
+      await loadState();
+    }
+
+    function render() {
+      // Connection badge
+      const cp = state.checkpoint || {};
+      const isConn = cp.connection_status === 'CONNECTED';
+      const connDiv = document.getElementById('connStatus');
+      connDiv.className = 'status-pill ' + (isConn ? 'status-connected' : 'status-disconnected');
+      document.getElementById('connText').textContent = isConn ? 'Connected' : 'Interrupted (Saved Start Point)';
+
+      document.getElementById('cpMatchday').textContent = cp.saved_start_matchday || 24;
+      document.getElementById('cpRound').textContent = cp.saved_start_round || 'RND-24-001';
+      document.getElementById('cpTime').textContent = cp.saved_start_utc || '--';
+
+      // Model Showcase
+      const carousel = document.getElementById('modelCarousel');
+      carousel.innerHTML = (state.models || []).map(m => `
+        <div class="model-card ${m.id === selectedModelId ? 'active' : ''}" onclick="selectedModelId='${m.id}'; render();">
+          <div class="model-emoji">${m.emoji}</div>
+          <div>
+            <div class="model-name" style="color: ${m.color};">${m.name}</div>
+            <div class="model-title">${m.title}</div>
+          </div>
+        </div>
+      `).join('');
+
+      // Upcoming Games List
+      const upcomingList = document.getElementById('upcomingGamesList');
+      upcomingList.innerHTML = (state.upcoming || []).map(g => {
+        const gamePreds = (state.predictions || []).filter(p => p.fixture_id === g.fixture_id);
+        const consensus = gamePreds.find(p => p.model_id === 'model_consensus');
+
+        return `
+          <div class="game-card">
+            <div class="game-header">
+              <span>${g.competition_name} • Matchday ${g.matchday}</span>
+              <span style="color: var(--profit);">PRE-KICKOFF</span>
+            </div>
+            <div class="game-teams">
+              <span><strong>${g.home_team}</strong></span>
+              <span style="color: var(--text-muted); font-size: 13px;">vs</span>
+              <span><strong>${g.away_team}</strong></span>
+            </div>
+            <div class="odds-row">
+              <div class="odds-pill">1: <strong>${g.odds_home}</strong></div>
+              <div class="odds-pill">X: <strong>${g.odds_draw}</strong></div>
+              <div class="odds-pill">2: <strong>${g.odds_away}</strong></div>
+            </div>
+            ${consensus ? `
+              <div class="consensus-banner">
+                <div>
+                  <div style="font-size: 11px; font-weight: 800; color: var(--gold);">🎯 CONSOLIDATED CONSENSUS (MOST COMMON SELECTION)</div>
+                  <div style="font-size: 15px; font-weight: 900;">${consensus.selection} @ ${consensus.odds}</div>
+                </div>
+                <div style="background: var(--gold); color: black; font-weight: 900; font-size: 11px; padding: 4px 8px; border-radius: 6px;">
+                  ${Math.round(consensus.confidence * 100)}% Conf
+                </div>
+              </div>
+            ` : ''}
+            <div class="forecast-grid">
+              ${gamePreds.filter(p => p.model_id !== 'model_consensus').map(p => {
+                const m = state.models.find(x => x.id === p.model_id) || {};
+                return `
+                  <div class="model-forecast-tile" style="border-left: 3px solid ${m.color || '#fff'};">
+                    <span>${m.emoji || ''} <strong>${m.name || p.model_id}</strong>: ${p.selection}</span>
+                    <span style="color: var(--gold); font-weight: 800;">@ ${p.odds}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Simulator KPIs
+      const activeStats = (state.model_stats || []).find(s => s.model.id === selectedModelId) || {
+        total_betted: 0, total_profit: 0, total_loss: 0, net_profit: 0, bankroll: 1000, wins: 0, losses: 0, win_rate: 0
+      };
+
+      document.getElementById('simBetted').textContent = `$${activeStats.total_betted.toFixed(2)}`;
+      document.getElementById('simBetCount').textContent = `${activeStats.wins + activeStats.losses} bets placed (${activeStats.model.name})`;
+      document.getElementById('simProfit').textContent = `+$${activeStats.total_profit.toFixed(2)}`;
+      document.getElementById('simWins').textContent = `${activeStats.wins} winning bets`;
+      document.getElementById('simLoss').textContent = `-$${activeStats.total_loss.toFixed(2)}`;
+      document.getElementById('simLosses').textContent = `${activeStats.losses} lost bets`;
+      document.getElementById('simBankroll').textContent = `$${activeStats.bankroll.toFixed(2)}`;
+      document.getElementById('simNetRoi').textContent = `${activeStats.net_profit >= 0 ? '+' : ''}$${activeStats.net_profit.toFixed(2)} Net Outcome`;
+
+      // Multi-model Comparison Table
+      const compBody = document.getElementById('comparisonTableBody');
+      compBody.innerHTML = (state.model_stats || []).map(s => `
+        <tr>
+          <td>${s.model.emoji} <strong>${s.model.name}</strong></td>
+          <td>$${s.total_betted.toFixed(2)}</td>
+          <td style="color: var(--profit);">+$${s.total_profit.toFixed(2)}</td>
+          <td style="color: var(--loss);">-$${s.total_loss.toFixed(2)}</td>
+          <td style="font-weight: 800; color: ${s.net_profit >= 0 ? 'var(--profit)' : 'var(--loss)'};">
+            ${s.net_profit >= 0 ? '+' : ''}$${s.net_profit.toFixed(2)}
+          </td>
+          <td>${s.win_rate}%</td>
+        </tr>
+      `).join('');
+
+      // Bets Feed
+      const betsFeed = document.getElementById('betsFeed');
+      const filteredBets = (state.bets || []).filter(b => b.model_id === selectedModelId);
+      betsFeed.innerHTML = filteredBets.map(b => {
+        const isWon = b.status === 'WON';
+        return `
+          <div class="card" style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+              <strong>${b.fixture} • ${b.selection} @ ${b.odds}</strong>
+              <span class="${isWon ? 'badge-won' : 'badge-lost'}">${b.status}</span>
+            </div>
+            <div class="financial-box">
+              <div><span style="color: var(--text-muted); font-size: 10px;">BETTED:</span> <strong>$${b.stake.toFixed(2)}</strong></div>
+              <div><span style="color: var(--text-muted); font-size: 10px;">RESULT:</span> <strong>${b.ft_score || 'FINAL'}</strong></div>
+              <div><span style="color: var(--text-muted); font-size: 10px;">OUTCOME:</span> <strong style="color: ${isWon ? 'var(--profit)' : 'var(--loss)'};">${isWon ? '+' : ''}$${b.net_profit.toFixed(2)}</strong></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Unified Records
+      const recordsDiv = document.getElementById('unifiedRecordsList');
+      recordsDiv.innerHTML = (state.all_fixtures || []).map(f => `
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+            <span>${f.competition_name} • Matchday ${f.matchday}</span>
+            <span style="color: ${f.status === 'FINAL' ? 'var(--profit)' : 'var(--gold)'}; font-weight: 800;">${f.status}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 800;">
+            <span>${f.home_team}</span>
+            <span style="background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 6px;">${f.status === 'FINAL' ? `${f.ft_home} - ${f.ft_away}` : 'VS'}</span>
+            <span>${f.away_team}</span>
+          </div>
+          <div class="odds-row" style="margin-top: 8px;">
+            <div class="odds-pill">Home: ${f.odds_home} ${f.status === 'FINAL' && f.outcome === '1' ? '✓' : ''}</div>
+            <div class="odds-pill">Draw: ${f.odds_draw} ${f.status === 'FINAL' && f.outcome === 'X' ? '✓' : ''}</div>
+            <div class="odds-pill">Away: ${f.odds_away} ${f.status === 'FINAL' && f.outcome === '2' ? '✓' : ''}</div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 6px;">
+            <span>Odds Captured: ${f.captured_utc}</span>
+            <span>Outcome Settled: ${f.updated_utc}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    loadState();
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "VirtualBet AI",
+  "description": "Virtual league odds & results collector, multi-market ML predictions, model rankings, pre-match board, and consensus player simulator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
